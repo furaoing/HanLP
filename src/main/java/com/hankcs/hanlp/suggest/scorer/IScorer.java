@@ -31,9 +31,4 @@ public interface IScorer
      * @param sentence
      */
     void addSentence(String sentence);
-
-    /**
-     * 清空该推荐器中的所有句子
-     */
-    void removeAllSentences();
 }

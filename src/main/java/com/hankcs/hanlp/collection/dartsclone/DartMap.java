@@ -11,38 +11,25 @@
  */
 package com.hankcs.hanlp.collection.dartsclone;
 
-import com.hankcs.hanlp.collection.trie.ITrie;
-import com.hankcs.hanlp.corpus.io.ByteArray;
-
-import java.io.DataOutputStream;
 import java.util.*;
 
 /**
  * 双数组trie树map，更省内存，原本希望代替DoubleArrayTrie，后来发现效率不够
  * @author hankcs
  */
-public class DartMap<V> extends DoubleArray implements Map<String, V>, ITrie<V>
+public class DartMap<V> extends DoubleArray implements Map<String, V>
 {
-    V[] valueArray;
+    ArrayList<V> valueArray;
 
-    public DartMap(List<String> keyList, V[] valueArray)
+    public DartMap(List<String> keyList, List<V> valueList)
     {
-        int[] indexArray = new int[valueArray.length];
-        for (int i = 0; i < indexArray.length; ++i)
+        int[] valueArray = new int[valueList.size()];
+        for (int i = 0; i < valueArray.length; ++i)
         {
-            indexArray[i] = i;
+            valueArray[i] = i;
         }
-        this.valueArray = valueArray;
-        build(keyList, indexArray);
-    }
-
-    public DartMap(TreeMap<String, V> map)
-    {
-        build(map);
-    }
-
-    public DartMap()
-    {
+        this.valueArray = new ArrayList<V>(valueList);
+        build(keyList, valueArray);
     }
 
     @Override
@@ -80,54 +67,11 @@ public class DartMap<V> extends DoubleArray implements Map<String, V>, ITrie<V>
         return get(key.toString());
     }
 
-    @Override
-    public int build(TreeMap<String, V> keyValueMap)
-    {
-        int size = keyValueMap.size();
-        int[] indexArray = new int[size];
-        valueArray = (V[]) keyValueMap.values().toArray();
-        List<String> keyList = new ArrayList<String>(size);
-        int i = 0;
-        for (Entry<String, V> entry : keyValueMap.entrySet())
-        {
-            indexArray[i] = i;
-            valueArray[i] = entry.getValue();
-            keyList.add(entry.getKey());
-            ++i;
-        }
-        build(keyList, indexArray);
-        return 0;
-    }
-
-    @Override
-    public boolean save(DataOutputStream out)
-    {
-        return false;
-    }
-
-    @Override
-    public boolean load(ByteArray byteArray, V[] value)
-    {
-        return false;
-    }
-
-    @Override
-    public V get(char[] key)
-    {
-        return get(new String(key));
-    }
-
     public V get(String key)
     {
         int id = exactMatchSearch(key);
         if (id == -1) return null;
-        return valueArray[id];
-    }
-
-    @Override
-    public V[] getValueArray(V[] a)
-    {
-        return valueArray;
+        return valueArray.get(id);
     }
 
     /**
@@ -144,7 +88,7 @@ public class DartMap<V> extends DoubleArray implements Map<String, V>, ITrie<V>
         ArrayList<Pair<String, V>> resultList = new ArrayList<Pair<String, V>>(pairList.size());
         for (Pair<Integer, Integer> pair : pairList)
         {
-            resultList.add(new Pair<String, V>(new String(keyBytes, 0, pair.first), valueArray[pair.second]));
+            resultList.add(new Pair<String, V>(new String(keyBytes, 0, pair.first), valueArray.get(pair.second)));
         }
         return resultList;
     }
@@ -187,7 +131,7 @@ public class DartMap<V> extends DoubleArray implements Map<String, V>, ITrie<V>
     @Override
     public Collection<V> values()
     {
-        return Arrays.asList(valueArray);
+        return valueArray;
     }
 
     @Override

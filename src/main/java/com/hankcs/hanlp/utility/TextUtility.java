@@ -2,7 +2,6 @@ package com.hankcs.hanlp.utility;
 
 
 import java.io.*;
-import java.util.Collection;
 
 /**
  * 文本工具类
@@ -76,8 +75,7 @@ public class TextUtility
             int ub2 = getUnsigned(b2);
             if (ub1 < 128)
             {
-                if (' ' == b1) return CT_OTHER;
-                if ("*\"!,.?()[]{}+=/\\;:|".indexOf((char) b1) != -1)
+                if (" *\"!,.?()[]{}+=/\\;:|".indexOf((char) b1) != -1)
                     return CT_DELIMITER;
                 if ("0123456789".indexOf((char)b1) != -1)
                     return CT_NUM;
@@ -699,14 +697,13 @@ public class TextUtility
         return true;
     }
 
-    public static String join(String delimiter, Collection<String> stringCollection)
+    public static String text_slice(String text, int requested_length)
     {
-        StringBuilder sb = new StringBuilder(stringCollection.size() * (16 + delimiter.length()));
-        for (String str : stringCollection)
-        {
-            sb.append(str).append(delimiter);
+        if (text.length()>requested_length) {
+            return text.substring(0, requested_length);
         }
-
-        return sb.toString();
+        else {
+            return text;
+        }
     }
 }

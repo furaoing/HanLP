@@ -40,10 +40,6 @@ public class JapanesePersonDictionary
      * 名
      */
     public static final char M = 'm';
-    /**
-     * bad case
-     */
-    public static final char A = 'A';
 
     static
     {

@@ -12,18 +12,12 @@
 package com.hankcs.test.model;
 
 import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.collection.trie.bintrie.BinTrie;
-import com.hankcs.hanlp.corpus.dictionary.EasyDictionary;
 import com.hankcs.hanlp.corpus.document.CorpusLoader;
 import com.hankcs.hanlp.corpus.document.Document;
 import com.hankcs.hanlp.corpus.document.sentence.word.IWord;
 import com.hankcs.hanlp.corpus.document.sentence.word.Word;
 import com.hankcs.hanlp.corpus.io.ByteArray;
-import com.hankcs.hanlp.corpus.io.EasyReader;
-import com.hankcs.hanlp.corpus.io.IOUtil;
-import com.hankcs.hanlp.corpus.io.LineHandler;
 import com.hankcs.hanlp.corpus.util.Precompiler;
-import com.hankcs.hanlp.model.crf.FeatureFunction;
 import com.hankcs.hanlp.model.crf.FeatureTemplate;
 import com.hankcs.hanlp.model.crf.CRFModel;
 import com.hankcs.hanlp.model.crf.Table;
@@ -97,8 +91,8 @@ public class TestCRF extends TestCase
      */
     public void testPrepareCRFTrainingCorpus() throws Exception
     {
-        final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("e:\\2014.txt"), "UTF-8"));
-        CorpusLoader.walk("D:\\Doc\\语料库\\2014_hankcs", new CorpusLoader.Handler()
+        final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("D:\\Tools\\CRF++-0.58\\example\\seg_cn\\2014人民日报语料BMES切分.txt"), "UTF-8"));
+        CorpusLoader.walk("H:\\seg_corpus", new CorpusLoader.Handler()
                           {
                               @Override
                               public void handle(Document document)
@@ -106,10 +100,8 @@ public class TestCRF extends TestCase
                                   try
                                   {
                                       List<List<Word>> sentenceList = document.getSimpleSentenceList();
-                                      if (sentenceList.size() == 0) return;
                                       for (List<Word> sentence : sentenceList)
                                       {
-                                          if (sentence.size() == 0) continue;
                                           for (IWord iWord : sentence)
                                           {
                                               String word = iWord.getValue();
@@ -124,28 +116,28 @@ public class TestCRF extends TestCase
                                                   bw.write(word);
                                                   bw.write('\t');
                                                   bw.write('S');
-                                                  bw.write('\n');
+                                                  bw.newLine();
                                               }
                                               else
                                               {
                                                   bw.write(word.charAt(0));
                                                   bw.write('\t');
                                                   bw.write('B');
-                                                  bw.write('\n');
+                                                  bw.newLine();
                                                   for (int i = 1; i < word.length() - 1; ++i)
                                                   {
                                                       bw.write(word.charAt(i));
                                                       bw.write('\t');
                                                       bw.write('M');
-                                                      bw.write('\n');
+                                                      bw.newLine();
                                                   }
                                                   bw.write(word.charAt(word.length() - 1));
                                                   bw.write('\t');
                                                   bw.write('E');
-                                                  bw.write('\n');
+                                                  bw.newLine();
                                               }
                                           }
-                                          bw.write('\n');
+                                          bw.newLine();
                                       }
                                   }
                                   catch (IOException e)
@@ -174,41 +166,5 @@ public class TestCRF extends TestCase
         else if (tag.equals("x")) return "W";
         else if (tag.equals("nx")) return "W";
         return null;
-    }
-
-    public void testLoadModelWithBiGramFeature() throws Exception
-    {
-        String path = HanLP.Config.CRFSegmentModelPath + Predefine.BIN_EXT;
-        CRFModel model = new CRFModel(new BinTrie<FeatureFunction>());
-        model.load(ByteArray.createByteArray(path));
-
-        Table table = new Table();
-        String text = "人民生活进一步改善了";
-        table.v = new String[text.length()][2];
-        for (int i = 0; i < text.length(); i++)
-        {
-            table.v[i][0] = String.valueOf(text.charAt(i));
-        }
-
-        model.tag(table);
-        System.out.println(table);
-    }
-
-    public void testRemoveSpace() throws Exception
-    {
-        String inputPath = "E:\\2014.txt";
-        String outputPath = "E:\\2014f.txt";
-        BufferedReader br = IOUtil.newBufferedReader(inputPath);
-        BufferedWriter bw = IOUtil.newBufferedWriter(outputPath);
-        String line = "";
-        int preLength = 0;
-        while ((line = br.readLine()) != null)
-        {
-            if (preLength == 0 && line.length() == 0) continue;
-            bw.write(line);
-            bw.newLine();
-            preLength = line.length();
-        }
-        bw.close();
     }
 }

@@ -15,7 +15,6 @@ import com.hankcs.hanlp.HanLP;
 import com.hankcs.hanlp.collection.trie.DoubleArrayTrie;
 import com.hankcs.hanlp.corpus.io.ByteArray;
 import com.hankcs.hanlp.corpus.tag.Nature;
-import com.hankcs.hanlp.utility.LexiconUtility;
 import com.hankcs.hanlp.utility.Predefine;
 import com.hankcs.hanlp.utility.TextUtility;
 
@@ -273,7 +272,7 @@ public class CoreDictionary
                 Attribute attribute = new Attribute(natureCount);
                 for (int i = 0; i < natureCount; ++i)
                 {
-                    attribute.nature[i] = LexiconUtility.convertStringToNature(param[2 * i], null);
+                    attribute.nature[i] = Enum.valueOf(Nature.class, param[2 * i]);
                     attribute.frequency[i] = Integer.parseInt(param[1 + 2 * i]);
                     attribute.totalFrequency += attribute.frequency[i];
                 }
@@ -314,6 +313,7 @@ public class CoreDictionary
          */
         public int getNatureFrequency(final Nature nature)
         {
+            int result = 0;
             int i = 0;
             for (Nature pos : this.nature)
             {
@@ -323,7 +323,7 @@ public class CoreDictionary
                 }
                 ++i;
             }
-            return 0;
+            return result;
         }
 
         /**

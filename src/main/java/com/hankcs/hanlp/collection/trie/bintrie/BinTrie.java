@@ -12,12 +12,12 @@
 package com.hankcs.hanlp.collection.trie.bintrie;
 
 import com.hankcs.hanlp.collection.trie.ITrie;
-import com.hankcs.hanlp.collection.trie.bintrie.BaseNode;
 import com.hankcs.hanlp.corpus.io.ByteArray;
 import com.hankcs.hanlp.corpus.io.IOUtil;
 import com.hankcs.hanlp.utility.TextUtility;
 
-import java.io.*;
+import java.io.DataOutputStream;
+import java.io.FileOutputStream;
 import java.util.*;
 
 import static com.hankcs.hanlp.utility.Predefine.logger;
@@ -27,13 +27,13 @@ import static com.hankcs.hanlp.utility.Predefine.logger;
  *
  * @author hankcs
  */
-public class BinTrie<V> extends BaseNode<V> implements ITrie<V>, Externalizable
+public class BinTrie<V> extends BaseNode<V> implements ITrie<V>
 {
     private int size;
 
     public BinTrie()
     {
-        child = new BaseNode[65535 + 1];    // (int)Character.MAX_VALUE
+        child = new BaseNode[65535];    // (int)Character.MAX_VALUE
         size = 0;
         status = Status.NOT_WORD_1;
     }
@@ -76,16 +76,6 @@ public class BinTrie<V> extends BaseNode<V> implements ITrie<V>, Externalizable
         {
             ++size; // 维护size
         }
-    }
-
-    /**
-     * 设置键值对，当键不存在的时候会自动插入
-     * @param key
-     * @param value
-     */
-    public void set(String key, V value)
-    {
-        put(key.toCharArray(), value);
     }
 
     /**
@@ -469,38 +459,5 @@ public class BinTrie<V> extends BaseNode<V> implements ITrie<V>, Externalizable
     public _ValueArray newValueArray()
     {
         return new _ValueArray();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
-        out.writeInt(size);
-        for (BaseNode node : child)
-        {
-            if (node == null)
-            {
-                out.writeInt(0);
-            }
-            else
-            {
-                out.writeInt(1);
-                node.walkToSave(out);
-            }
-        }
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
-    {
-        size = in.readInt();
-        for (int i = 0; i < child.length; ++i)
-        {
-            int flag = in.readInt();
-            if (flag == 1)
-            {
-                child[i] = new Node<V>();
-                child[i].walkToLoad(in);
-            }
-        }
     }
 }

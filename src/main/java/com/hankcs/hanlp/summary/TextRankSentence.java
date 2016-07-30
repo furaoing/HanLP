@@ -11,17 +11,14 @@
  */
 package com.hankcs.hanlp.summary;
 
-
 import com.hankcs.hanlp.dictionary.stopword.CoreStopWordDictionary;
 import com.hankcs.hanlp.seg.common.Term;
 import com.hankcs.hanlp.tokenizer.StandardTokenizer;
-import com.hankcs.hanlp.utility.TextUtility;
 
 import java.util.*;
 
 /**
  * TextRank 自动摘要
- *
  * @author hankcs
  */
 public class TextRankSentence
@@ -120,7 +117,6 @@ public class TextRankSentence
 
     /**
      * 获取前几个关键句子
-     *
      * @param size 要几个
      * @return 关键句子的下标
      */
@@ -139,7 +135,6 @@ public class TextRankSentence
 
     /**
      * 简单的求和
-     *
      * @param array
      * @return
      */
@@ -165,9 +160,8 @@ public class TextRankSentence
 
     /**
      * 将文章分割为句子
-     *
      * @param document
-     * @return
+     * @return sentences
      */
     static List<String> spiltSentence(String document)
     {
@@ -176,7 +170,7 @@ public class TextRankSentence
         {
             line = line.trim();
             if (line.length() == 0) continue;
-            for (String sent : line.split("[，,。:：“”？?！!；;]"))
+            for (String sent : line.split("[。!！？?]"))
             {
                 sent = sent.trim();
                 if (sent.length() == 0) continue;
@@ -184,18 +178,27 @@ public class TextRankSentence
             }
         }
 
-        return sentences;
+        List<String> new_sentences = new ArrayList<String>();
+        for (String sentence: sentences)
+        {
+            sentence = sentence + "。";
+            sentence = patch_pun_dedup(sentence);
+            sentence = patch_quote(sentence);
+            new_sentences.add(sentence);
+        }
+        return new_sentences;
     }
 
     /**
-     * 将句子列表转化为文档
-     *
-     * @param sentenceList
-     * @return
+     * 一句话调用接口
+     * @param document 目标文档
+     * @param size 需要的关键句的个数
+     * @return 关键句列表
      */
-    private static List<List<String>> convertSentenceListToDocument(List<String> sentenceList)
+    public static List<String> getTopSentenceList(String document, int size)
     {
-        List<List<String>> docs = new ArrayList<List<String>>(sentenceList.size());
+        List<String> sentenceList = spiltSentence(document);
+        List<List<String>> docs = new ArrayList<List<String>>();
         for (String sentence : sentenceList)
         {
             List<Term> termList = StandardTokenizer.segment(sentence.toCharArray());
@@ -208,21 +211,8 @@ public class TextRankSentence
                 }
             }
             docs.add(wordList);
+//            System.out.println(wordList);
         }
-        return docs;
-    }
-
-    /**
-     * 一句话调用接口
-     *
-     * @param document 目标文档
-     * @param size     需要的关键句的个数
-     * @return 关键句列表
-     */
-    public static List<String> getTopSentenceList(String document, int size)
-    {
-        List<String> sentenceList = spiltSentence(document);
-        List<List<String>> docs = convertSentenceListToDocument(sentenceList);
         TextRankSentence textRank = new TextRankSentence(docs);
         int[] topSentence = textRank.getTopSentence(size);
         List<String> resultList = new LinkedList<String>();
@@ -235,22 +225,36 @@ public class TextRankSentence
 
     /**
      * 一句话调用接口
-     *
-     * @param document   目标文档
+     * @param document 目标文档
      * @param max_length 需要摘要的长度
      * @return 摘要文本
      */
     public static String getSummary(String document, int max_length)
     {
+        if(!validate_document(document, max_length)){
+            return "";
+        }
         List<String> sentenceList = spiltSentence(document);
 
         int sentence_count = sentenceList.size();
-        int document_length = document.length();
-        int sentence_length_avg = document_length / sentence_count;
-        int size = max_length / sentence_length_avg + 1;
-        List<List<String>> docs = convertSentenceListToDocument(sentenceList);
+        List<List<String>> docs = new ArrayList<List<String>>();
+        for (String sentence : sentenceList)
+        {
+            List<Term> termList = StandardTokenizer.segment(sentence.toCharArray());
+            List<String> wordList = new LinkedList<String>();
+            for (Term term : termList)
+            {
+                if (CoreStopWordDictionary.shouldInclude(term))
+                {
+                    wordList.add(term.word);
+                }
+            }
+            docs.add(wordList);
+//            System.out.println(wordList);
+        }
+
         TextRankSentence textRank = new TextRankSentence(docs);
-        int[] topSentence = textRank.getTopSentence(size);
+        int[] topSentence = textRank.getTopSentence(sentence_count);
         List<String> resultList = new LinkedList<String>();
         for (int i : topSentence)
         {
@@ -259,8 +263,48 @@ public class TextRankSentence
 
         resultList = permutation(resultList, sentenceList);
         resultList = pick_sentences(resultList, max_length);
-        return TextUtility.join("。", resultList);
+
+        String summary = "";
+        for(String temp : resultList)
+        {
+        	summary += temp;
+        }
+
+        if (summary.length() < 15){
+            summary = "";
+        }
+        return summary;
     }
+
+    public static String patch_quote(String sentence)
+    {
+        if((sentence.charAt(0)=='“')&&(sentence.charAt(sentence.length()-1)!='”'))
+        {
+            sentence += "”";
+        }
+        else if((sentence.charAt(0)=='"')&&(sentence.charAt(sentence.length()-1)!='"'))
+        {
+            sentence += "\"";
+        }
+
+        return sentence;
+    }
+
+    public static String patch_pun_dedup(String sentence)
+    {
+        char temp_char = sentence.charAt(sentence.length() - 2);
+        String temp_str = Character.toString(temp_char);
+        String pun_collection = ",，.。";
+        if (pun_collection.contains(temp_str))
+        {
+            sentence = removeCharAt(sentence, sentence.length() - 2);
+        }
+        return sentence;
+    }
+
+    public static String removeCharAt(String s, int pos) {
+      return s.substring(0, pos) + s.substring(pos + 1);
+   }
 
     public static List<String> permutation(List<String> resultList, List<String> sentenceList)
     {
@@ -271,7 +315,7 @@ public class TextRankSentence
         int length = resultList.size();
         // bubble sort derivative
         for (int i = 0; i < length; i++)
-            for (int offset = 0; offset < length - i; offset++)
+            for (int offset=0; offset < length - i; offset++)
             {
                 sen_x = resultList.get(i);
                 sen_y = resultList.get(i + offset);
@@ -281,7 +325,7 @@ public class TextRankSentence
                 if (index_buffer_x > index_buffer_y)
                 {
                     resultList.set(i, sen_y);
-                    resultList.set(i + offset, sen_x);
+                    resultList.set(i+offset, sen_x);
                 }
             }
 
@@ -291,29 +335,40 @@ public class TextRankSentence
     public static List<String> pick_sentences(List<String> resultList, int max_length)
     {
         int length_counter = 0;
-        int length_buffer;
-        int length_jump;
+
         List<String> resultBuffer = new LinkedList<String>();
-        for (int i = 0; i < resultList.size(); i++)
+        for (String sentence: resultList)
         {
-            length_buffer = length_counter + resultList.get(i).length();
-            if (length_buffer <= max_length)
-            {
-                resultBuffer.add(resultList.get(i));
-                length_counter += resultList.get(i).length();
+            if ((max_length-length_counter) < 10){
+                break;
             }
-            else if (i < (resultList.size() - 1))
+            int sentence_len = sentence.length();
+            if (sentence_len < 10){
+                continue;
+            }
+
+            if ((length_counter + sentence_len) <= max_length)
             {
-                length_jump = length_counter + resultList.get(i + 1).length();
-                if (length_jump <= max_length)
-                {
-                    resultBuffer.add(resultList.get(i + 1));
-                    length_counter += resultList.get(i + 1).length();
-                    i++;
-                }
+                resultBuffer.add(sentence);
+                length_counter += sentence_len;
             }
         }
         return resultBuffer;
     }
 
+    public static Boolean validate_document(String document, int max_length)
+    {
+        Boolean if_validate = true;
+        if (document.length() == 0){
+            if_validate = false;
+        }
+        else if (document.length() < max_length){
+            if_validate = false;
+        }
+        else{
+            if_validate = true;
+        }
+
+        return if_validate;
+    }
 }

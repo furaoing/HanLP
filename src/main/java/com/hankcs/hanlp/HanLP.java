@@ -12,7 +12,7 @@
 package com.hankcs.hanlp;
 
 import com.hankcs.hanlp.corpus.dependency.CoNll.CoNLLSentence;
-import com.hankcs.hanlp.dependency.nnparser.NeuralNetworkDependencyParser;
+import com.hankcs.hanlp.dependency.MaxEntDependencyParser;
 import com.hankcs.hanlp.dictionary.py.Pinyin;
 import com.hankcs.hanlp.dictionary.py.PinyinDictionary;
 import com.hankcs.hanlp.dictionary.ts.SimplifiedChineseDictionary;
@@ -25,10 +25,9 @@ import com.hankcs.hanlp.seg.common.Term;
 import com.hankcs.hanlp.summary.TextRankKeyword;
 import com.hankcs.hanlp.summary.TextRankSentence;
 import com.hankcs.hanlp.tokenizer.StandardTokenizer;
-import com.hankcs.hanlp.utility.Predefine;
+import com.hankcs.hanlp.utility.TextUtility;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Properties;
@@ -49,7 +48,7 @@ public class HanLP
      * 库的全局配置，既可以用代码修改，也可以通过hanlp.properties配置（按照 变量名=值 的形式）
      */
     public static final class Config
-    {
+    {    	
         /**
          * 开发模式
          */
@@ -147,10 +146,6 @@ public class HanLP
          */
         public static String MaxEntModelPath = "data/model/dependency/MaxEntModel.txt";
         /**
-         * 神经网络依存模型路径
-         */
-        public static String NNParserModelPath = "data/model/dependency/NNParserModel.txt";
-        /**
          * CRF分词模型
          */
         public static String CRFSegmentModelPath = "data/model/segment/CRFSegmentModel.txt";
@@ -177,15 +172,7 @@ public class HanLP
             Properties p = new Properties();
             try
             {
-                ClassLoader loader = Thread.currentThread().getContextClassLoader();
-                if (loader == null)
-                {  // IKVM (v.0.44.0.5) doesn't set context classloader
-                    loader = HanLP.Config.class.getClassLoader();
-                }
-                p.load(new InputStreamReader(Predefine.HANLP_PROPERTIES_PATH == null ?
-                        loader.getResourceAsStream("hanlp.properties") :
-                        new FileInputStream(Predefine.HANLP_PROPERTIES_PATH)
-                        , "UTF-8"));
+                p.load(new InputStreamReader(Thread.currentThread().getContextClassLoader().getResourceAsStream("hanlp.properties"), "UTF-8"));
                 String root = p.getProperty("root", "").replaceAll("\\\\", "/");
                 if (!root.endsWith("/")) root += "/";
                 CoreDictionaryPath = root + p.getProperty("CoreDictionaryPath", CoreDictionaryPath);
@@ -227,7 +214,6 @@ public class HanLP
                 CharTablePath = root + p.getProperty("CharTablePath", CharTablePath);
                 WordNatureModelPath = root + p.getProperty("WordNatureModelPath", WordNatureModelPath);
                 MaxEntModelPath = root + p.getProperty("MaxEntModelPath", MaxEntModelPath);
-                NNParserModelPath = root + p.getProperty("NNParserModelPath", NNParserModelPath);
                 CRFSegmentModelPath = root + p.getProperty("CRFSegmentModelPath", CRFSegmentModelPath);
                 CRFDependencyModelPath = root + p.getProperty("CRFDependencyModelPath", CRFDependencyModelPath);
                 HMMSegmentModelPath = root + p.getProperty("HMMSegmentModelPath", HMMSegmentModelPath);
@@ -240,7 +226,7 @@ public class HanLP
                 String classPath = (String) System.getProperties().get("java.class.path");
                 if (classPath != null)
                 {
-                    for (String path : classPath.split(File.pathSeparator))
+                    for (String path : classPath.split(";"))
                     {
                         if (new File(path).isDirectory())
                         {
@@ -259,6 +245,68 @@ public class HanLP
             }
         }
 
+        private static boolean HadInitRootPath = false;
+        
+        public static void initRootPath(String RootPath)
+        {         
+    		try
+            {
+    			if(!HadInitRootPath)
+    			{
+    				HadInitRootPath = true;
+    				if (!RootPath.endsWith("/")) RootPath += "/";
+	                CoreDictionaryPath = RootPath + "data/dictionary/CoreNatureDictionary.txt";
+	                CoreDictionaryTransformMatrixDictionaryPath = RootPath + CoreDictionaryTransformMatrixDictionaryPath;
+	                BiGramDictionaryPath = RootPath + "data/dictionary/CoreNatureDictionary.ngram.txt";
+	                CoreStopWordDictionaryPath = RootPath + "data/dictionary/stopwords.txt";
+	                CoreSynonymDictionaryDictionaryPath = RootPath + "data/dictionary/synonym/CoreSynonym.txt";
+	                PersonDictionaryPath = RootPath + "data/dictionary/person/nr.txt";
+	                PersonDictionaryTrPath = RootPath + "data/dictionary/person/nr.tr.txt";
+	                String[] pathArray = "data/dictionary/custom/CustomDictionary.txt; Taikor_CustomDict.txt; 现代汉语补充词库.txt; 全国地名大全.txt ns; 人名词典.txt; 机构名词典.txt; 上海地名.txt ns;data/dictionary/person/nrf.txt nrf".split(";");
+	                String prePath = RootPath;
+	                for (int i = 0; i < pathArray.length; ++i)
+	                {
+	                    if (pathArray[i].startsWith(" "))
+	                    {
+	                        pathArray[i] = prePath + pathArray[i].trim();
+	                    }
+	                    else
+	                    {
+	                        pathArray[i] = RootPath + pathArray[i];
+	                        int lastSplash = pathArray[i].lastIndexOf('/');
+	                        if (lastSplash != -1)
+	                        {
+	                            prePath = pathArray[i].substring(0, lastSplash + 1);
+	                        }
+	                    }
+	                }
+	                CustomDictionaryPath = pathArray;
+	                TraditionalChineseDictionaryPath = RootPath + "data/dictionary/tc/TraditionalChinese.txt";
+	                SYTDictionaryPath = RootPath + SYTDictionaryPath;
+	                PinyinDictionaryPath = RootPath + PinyinDictionaryPath;
+	                TranslatedPersonDictionaryPath = RootPath + TranslatedPersonDictionaryPath;
+	                JapanesePersonDictionaryPath = RootPath + JapanesePersonDictionaryPath;
+	                PlaceDictionaryPath = RootPath + PlaceDictionaryPath;
+	                PlaceDictionaryTrPath = RootPath + PlaceDictionaryTrPath;
+	                OrganizationDictionaryPath = RootPath + OrganizationDictionaryPath;
+	                OrganizationDictionaryTrPath = RootPath + OrganizationDictionaryTrPath;
+	                CharTypePath = RootPath + CharTypePath;
+	                CharTablePath = RootPath + CharTablePath;
+	                WordNatureModelPath = RootPath + WordNatureModelPath;
+	                MaxEntModelPath = RootPath + MaxEntModelPath;
+	                CRFSegmentModelPath = RootPath + "data/model/segment/CRFSegmentModel.txt";
+	                CRFDependencyModelPath = RootPath + CRFDependencyModelPath;
+	                HMMSegmentModelPath = RootPath + "data/model/segment/HMMSegmentModel.bin";
+	                ShowTermNature = true;
+	                Normalization = "true".equals("false");
+    			}
+            }
+            catch (Exception e)
+            {
+            }
+            
+        }
+        
         /**
          * 开启调试模式(会降低性能)
          */
@@ -285,6 +333,16 @@ public class HanLP
         }
     }
 
+	/**
+	 * 根路径
+	 * if windows, the data path is D:/Taikor/Data/HanLPData/
+	 * if linux, the data path is /taikor/data/HanLPData/
+	 */
+	public static void Init(String rootPath)
+    {
+		HanLP.Config.initRootPath(rootPath);
+    }
+	
     /**
      * 工具类，不需要生成实例
      */
@@ -404,7 +462,7 @@ public class HanLP
      */
     public static CoNLLSentence parseDependency(String sentence)
     {
-        return NeuralNetworkDependencyParser.compute(sentence);
+        return MaxEntDependencyParser.compute(sentence);
     }
 
     /**
@@ -440,7 +498,7 @@ public class HanLP
     {
         return TextRankSentence.getTopSentenceList(document, size);
     }
-    
+
     /**
      * 自动摘要
      * @param document 目标文档
@@ -451,6 +509,22 @@ public class HanLP
     {
         // Parameter size in this method refers to the string length of the summary required;
         // The actual length of the summary generated may be short than the required length, but never longer;
+        return TextRankSentence.getSummary(document, max_length);
+    }
+
+    /**
+     * 自动摘要
+     * @param document 目标文档
+     * @param max_length 需要摘要的长度
+     * @param max_doc_body 需要截取的文本长度
+     * @return 摘要文本
+     */
+    public static String getSummary(String document, int max_length, int max_doc_body)
+    {
+        // Parameter size in this method refers to the string length of the summary required;
+        // The actual length of the summary generated may be short than the required length, but never longer;
+        document = TextUtility.text_slice(document, max_doc_body);
+        // TODO: Handle unnaturally finished sentence (missing the ending punctuation) due to text slicing
         return TextRankSentence.getSummary(document, max_length);
     }
 }

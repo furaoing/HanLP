@@ -39,7 +39,6 @@ public class Node<V> extends BaseNode
                     if (target.status != Status.NOT_WORD_1)
                     {
                         target.status = Status.NOT_WORD_1;
-                        target.value = null;
                         add = true;
                     }
                     break;

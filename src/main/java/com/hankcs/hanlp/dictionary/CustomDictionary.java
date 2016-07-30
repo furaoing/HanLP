@@ -17,12 +17,10 @@ import com.hankcs.hanlp.collection.AhoCorasick.AhoCorasickDoubleArrayTrie;
 import com.hankcs.hanlp.collection.trie.DoubleArrayTrie;
 import com.hankcs.hanlp.collection.trie.bintrie.BinTrie;
 import com.hankcs.hanlp.corpus.io.ByteArray;
-import com.hankcs.hanlp.corpus.io.IOUtil;
 import com.hankcs.hanlp.corpus.tag.Nature;
 import com.hankcs.hanlp.dictionary.other.CharTable;
-import com.hankcs.hanlp.utility.LexiconUtility;
+import com.hankcs.hanlp.utility.HttpRequest;
 import com.hankcs.hanlp.utility.Predefine;
-import com.hankcs.hanlp.utility.TextUtility;
 
 import java.io.*;
 import java.util.*;
@@ -50,7 +48,7 @@ public class CustomDictionary
     static
     {
         long start = System.currentTimeMillis();
-        if (!loadMainDictionary(path[0]))
+        if (!loadMainDictionary(path[0])) // 加载自定义词典
         {
             logger.warning("自定义词典" + Arrays.toString(path) + "加载失败");
         }
@@ -65,7 +63,6 @@ public class CustomDictionary
         logger.info("自定义词典开始加载:" + mainPath);
         if (loadDat(mainPath)) return true;
         TreeMap<String, CoreDictionary.Attribute> map = new TreeMap<String, CoreDictionary.Attribute>();
-        LinkedHashSet<Nature> customNatureCollector = new LinkedHashSet<Nature>();
         try
         {
             for (String p : path)
@@ -79,7 +76,7 @@ public class CustomDictionary
                     p = p.substring(0, cut);
                     try
                     {
-                        defaultNature = LexiconUtility.convertStringToNature(nature, customNatureCollector);
+                        defaultNature = Nature.valueOf(nature);
                     }
                     catch (Exception e)
                     {
@@ -87,14 +84,9 @@ public class CustomDictionary
                         continue;
                     }
                 }
-                logger.info("以默认词性[" + defaultNature + "]加载自定义词典" + p + "中……");
-                boolean success = load(p, defaultNature, map, customNatureCollector);
+                logger.info("加载自定义词典" + p + "中……");
+                boolean success = load(p, defaultNature, map);
                 if (!success) logger.warning("失败：" + p);
-            }
-            if (map.size() == 0)
-            {
-                logger.warning("没有加载到任何词条");
-                map.put(Predefine.TAG_OTHER, null);     // 当作空白占位符
             }
             logger.info("正在构建DoubleArrayTrie……");
             dat.build(map);
@@ -107,9 +99,6 @@ public class CustomDictionary
                 attributeList.add(entry.getValue());
             }
             DataOutputStream out = new DataOutputStream(new FileOutputStream(mainPath + Predefine.BIN_EXT));
-            // 缓存用户词性
-            IOUtil.writeCustomNature(out, customNatureCollector);
-            // 缓存正文
             out.writeInt(attributeList.size());
             for (CoreDictionary.Attribute attribute : attributeList)
             {
@@ -147,10 +136,9 @@ public class CustomDictionary
      *
      * @param path          词典路径
      * @param defaultNature 默认词性
-     * @param customNatureCollector
      * @return
      */
-    public static boolean load(String path, Nature defaultNature, TreeMap<String, CoreDictionary.Attribute> map, LinkedHashSet<Nature> customNatureCollector)
+    public static boolean load(String path, Nature defaultNature, TreeMap<String, CoreDictionary.Attribute> map)
     {
         try
         {
@@ -161,10 +149,10 @@ public class CustomDictionary
                 String[] param = line.split("\\s");
                 if (param[0].length() == 0) continue;   // 排除空行
                 if (HanLP.Config.Normalization) param[0] = CharTable.convert(param[0]); // 正规化
-//                if (CoreDictionary.contains(param[0]) || map.containsKey(param[0]))
-//                {
-//                    continue;
-//                }
+                if (CoreDictionary.contains(param[0]) || map.containsKey(param[0]))
+                {
+                    continue;
+                }
                 int natureCount = (param.length - 1) / 2;
                 CoreDictionary.Attribute attribute;
                 if (natureCount == 0)
@@ -176,7 +164,7 @@ public class CustomDictionary
                     attribute = new CoreDictionary.Attribute(natureCount);
                     for (int i = 0; i < natureCount; ++i)
                     {
-                        attribute.nature[i] = LexiconUtility.convertStringToNature(param[1 + 2 * i], customNatureCollector);
+                        attribute.nature[i] = Enum.valueOf(Nature.class, param[1 + 2 * i]);
                         attribute.frequency[i] = Integer.parseInt(param[2 + 2 * i]);
                         attribute.totalFrequency += attribute.frequency[i];
                     }
@@ -195,8 +183,7 @@ public class CustomDictionary
     }
 
     /**
-     * 往自定义词典中插入一个新词（非覆盖模式）<br>
-     *     动态增删不会持久化到词典文件
+     * 往自定义词典中插入一个新词（非覆盖模式）
      *
      * @param word                新词 如“裸婚”
      * @param natureWithFrequency 词性和其对应的频次，比如“nz 1 v 2”，null时表示“nz 1”
@@ -209,11 +196,10 @@ public class CustomDictionary
     }
 
     /**
-     * 往自定义词典中插入一个新词（非覆盖模式）<br>
-     *     动态增删不会持久化到词典文件
+     * 增加新词
      *
-     * @param word                新词 如“裸婚”
-     * @return 是否插入成功（失败的原因可能是不覆盖等，可以通过调试模式了解原因）
+     * @param word
+     * @return
      */
     public static boolean add(String word)
     {
@@ -223,8 +209,7 @@ public class CustomDictionary
     }
 
     /**
-     * 往自定义词典中插入一个新词（覆盖模式）<br>
-     *     动态增删不会持久化到词典文件
+     * 往自定义词典中插入一个新词（覆盖模式）
      *
      * @param word                新词 如“裸婚”
      * @param natureWithFrequency 词性和其对应的频次，比如“nz 1 v 2”，null时表示“nz 1”。
@@ -243,8 +228,7 @@ public class CustomDictionary
     }
 
     /**
-     * 以覆盖模式增加新词<br>
-     *     动态增删不会持久化到词典文件
+     * 以覆盖模式增加新词
      *
      * @param word
      * @return
@@ -265,16 +249,7 @@ public class CustomDictionary
         try
         {
             ByteArray byteArray = ByteArray.createByteArray(path + Predefine.BIN_EXT);
-            if (byteArray == null) return false;
             int size = byteArray.nextInt();
-            if (size < 0)   // 一种兼容措施,当size小于零表示文件头部储存了-size个用户词性
-            {
-                while (++size <= 0)
-                {
-                    Nature.create(byteArray.nextString());
-                }
-                size = byteArray.nextInt();
-            }
             CoreDictionary.Attribute[] attributes = new CoreDictionary.Attribute[size];
             final Nature[] natureIndexArray = Nature.values();
             for (int i = 0; i < size; ++i)
@@ -294,7 +269,7 @@ public class CustomDictionary
         }
         catch (Exception e)
         {
-            logger.warning("读取失败，问题发生在" + TextUtility.exceptionToString(e));
+            logger.warning("读取失败，问题发生在" + e);
             return false;
         }
         return true;
@@ -309,22 +284,17 @@ public class CustomDictionary
     public static CoreDictionary.Attribute get(String key)
     {
         if (HanLP.Config.Normalization) key = CharTable.convert(key);
-        CoreDictionary.Attribute attribute = dat.get(key);
-        if (attribute != null) return attribute;
-        if (trie == null) return null;
         return trie.get(key);
     }
 
     /**
-     * 删除单词<br>
-     *     动态增删不会持久化到词典文件
+     * 删除单词
      *
      * @param key
      */
     public static void remove(String key)
     {
         if (HanLP.Config.Normalization) key = CharTable.convert(key);
-        if (trie == null) return;
         trie.remove(key);
     }
 
@@ -467,4 +437,197 @@ public class CustomDictionary
             processor.hit(searcher.begin, searcher.begin + searcher.length, searcher.value);
         }
     }
+
+    /**
+     * 通过本地文件动态添加动态词汇 (非覆盖)
+     * @param path         动态词库本地路径
+     */
+    public static boolean addLocalDict(String path)
+    {
+        try
+        {
+            BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path), "UTF-8"));
+            String line;
+            while ((line = br.readLine()) != null)
+            {
+                String[] param = line.split("\\s");
+                if (param[0].length() == 0) continue;   // 排除空行
+                if (HanLP.Config.Normalization) param[0] = CharTable.convert(param[0]); // 正规化
+
+                // int natureCount = (param.length - 1) / 2;
+                String Word = param[0];
+                String NatureWithFreq = line.replace(Word, "").trim();
+                Boolean result = add(Word, NatureWithFreq);
+            }
+            br.close();
+        }
+        catch (Exception e)
+        {
+            logger.severe("动态词典" + path + "读取错误！" + e);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 通过本地文件动态添加动态词汇 (覆盖)
+     * @param path         动态词库本地路径
+     */
+    public static boolean insertLocalDict(String path)
+    {
+        try
+        {
+            BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path), "UTF-8"));
+            String line;
+            while ((line = br.readLine()) != null)
+            {
+                String[] param = line.split("\\s");
+                if (param[0].length() == 0) continue;   // 排除空行
+                if (HanLP.Config.Normalization) param[0] = CharTable.convert(param[0]); // 正规化
+
+                // int natureCount = (param.length - 1) / 2;
+                String Word = param[0];
+                String NatureWithFreq = line.replace(Word, "").trim();
+                insert(Word, NatureWithFreq);
+            }
+            br.close();
+        }
+        catch (Exception e)
+        {
+            logger.severe("动态词典" + path + "读取错误！" + e);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 通过URL文档动态添加自定义词汇(非覆盖)
+     * @param url         动态字典文档URL
+     *  @param param_name          文档变量
+     *  @param param_value         文档名称
+     */
+    public static boolean addURLDict(String url, String param_name, String param_value)
+    {
+        try
+        {
+            String param_str = param_name + "=" + param_value;
+            String res  = HttpRequest.sendGet(url, param_str);
+            List<String> lines = Arrays.asList(res.split("\\r?\\n"));
+            for(String line :lines)
+            {
+                String[] param = line.split("\\s");
+                if (param[0].length() == 0) continue;   // 排除空行
+                if (HanLP.Config.Normalization) param[0] = CharTable.convert(param[0]); // 正规化
+
+                // int natureCount = (param.length - 1) / 2;
+                String Word = param[0];
+                String NatureWithFreq = line.replace(Word, "").trim();
+                add(Word, NatureWithFreq);
+            }
+        }
+        catch (Exception e)
+        {
+            logger.severe("动态词典" + path + "读取错误！" + e);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 通过URL文档动态添加自定义词汇(非覆盖)
+     * @param url         动态字典文档URL
+     */
+    public static boolean addURLDict(String url)
+    {
+        try
+        {
+            String res  = HttpRequest.sendGet(url, "");
+            List<String> lines = Arrays.asList(res.split("\\r?\\n"));
+            for(String line :lines)
+            {
+                String[] param = line.split("\\s");
+                if (param[0].length() == 0) continue;   // 排除空行
+                if (HanLP.Config.Normalization) param[0] = CharTable.convert(param[0]); // 正规化
+
+                // int natureCount = (param.length - 1) / 2;
+                String Word = param[0];
+                String NatureWithFreq = line.replace(Word, "").trim();
+                add(Word, NatureWithFreq);
+            }
+        }
+        catch (Exception e)
+        {
+            logger.severe("动态词典" + path + "读取错误！" + e);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 通过URL文档动态添加自定义词汇(覆盖)
+     * @param url         动态字典文档URL
+     */
+    public static boolean insertURLDict(String url, String param_name, String param_value)
+    {
+        try
+        {
+            String param_str = param_name + "=" + param_value;
+            String res  = HttpRequest.sendGet(url, param_str);
+            List<String> lines = Arrays.asList(res.split("\\r?\\n"));
+            for(String line :lines)
+            {
+                String[] param = line.split("\\s");
+                if (param[0].length() == 0) continue;   // 排除空行
+                if (HanLP.Config.Normalization) param[0] = CharTable.convert(param[0]); // 正规化
+
+                // int natureCount = (param.length - 1) / 2;
+                String Word = param[0];
+                String NatureWithFreq = line.replace(Word, "").trim();
+                insert(Word, NatureWithFreq);
+            }
+        }
+        catch (Exception e)
+        {
+            logger.severe("动态词典" + path + "读取错误！" + e);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 通过URL文档动态添加自定义词汇(覆盖)
+     * @param url         动态字典文档URL
+     */
+    public static boolean insertURLDict(String url)
+    {
+        try
+        {
+            String res  = HttpRequest.sendGet(url, "");
+            List<String> lines = Arrays.asList(res.split("\\r?\\n"));
+            for(String line :lines)
+            {
+                String[] param = line.split("\\s");
+                if (param[0].length() == 0) continue;   // 排除空行
+                if (HanLP.Config.Normalization) param[0] = CharTable.convert(param[0]); // 正规化
+
+                // int natureCount = (param.length - 1) / 2;
+                String Word = param[0];
+                String NatureWithFreq = line.replace(Word, "").trim();
+                insert(Word, NatureWithFreq);
+            }
+        }
+        catch (Exception e)
+        {
+            logger.severe("动态词典" + path + "读取错误！" + e);
+            return false;
+        }
+
+        return true;
+    }
+
 }

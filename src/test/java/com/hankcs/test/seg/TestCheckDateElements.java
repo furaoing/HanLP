@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * @author hankcs
  */
-public class TestCheckDateElements
+public class testCheckDateElements
 {
     public static void main(String[] args)
     {

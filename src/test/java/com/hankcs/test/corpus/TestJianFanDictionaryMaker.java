@@ -11,11 +11,9 @@
  */
 package com.hankcs.test.corpus;
 
-import com.hankcs.hanlp.HanLP;
 import com.hankcs.hanlp.corpus.dictionary.StringDictionary;
+import com.hankcs.hanlp.corpus.dictionary.StringDictionaryMaker;
 import junit.framework.TestCase;
-
-import java.util.Map;
 
 /**
  * @author hankcs
@@ -24,26 +22,22 @@ public class TestJianFanDictionaryMaker extends TestCase
 {
     public void testCombine() throws Exception
     {
-        StringDictionary dictionaryHanLP = new StringDictionary("=");
-        dictionaryHanLP.load(HanLP.Config.TraditionalChineseDictionaryPath);
+        StringDictionary dictionaryAnsj = new StringDictionary("\t");
+        dictionaryAnsj.load("D:\\JavaProjects\\nlp-lang\\src\\main\\resources\\fan2jian.dic");
 
-        StringDictionary dictionaryOuter = new StringDictionary("=");
-        dictionaryOuter.load("D:\\Doc\\语料库\\简繁分歧词表.txt");
+        StringDictionary dictionaryChinese = new StringDictionary("=");
+        dictionaryChinese.load("D:\\JavaProjects\\chinese-utils\\src\\main\\resources\\simplified.txt");
 
-        for (Map.Entry<String, String> entry : dictionaryOuter.entrySet())
-        {
-            String t = entry.getKey();
-            String s = entry.getValue();
-            if (t.length() == 1) continue;
-            if (HanLP.convertToTraditionalChinese(s).equals(t)) continue;
-            dictionaryHanLP.add(t, s);
-        }
+        StringDictionary dictionaryChineseTraditional = new StringDictionary("=");
+        dictionaryChineseTraditional.load("D:\\JavaProjects\\chinese-utils\\src\\main\\resources\\traditional.txt");
+        dictionaryChineseTraditional = dictionaryChineseTraditional.reverse();
 
-        dictionaryHanLP.save(HanLP.Config.TraditionalChineseDictionaryPath);
-    }
+        StringDictionary dictionaryJpinyin = new StringDictionary("=");
+        dictionaryJpinyin.load("D:\\JavaProjects\\jpinyin\\data\\chineseTable.txt");
 
-    public void testConvertSingle() throws Exception
-    {
-        System.out.println(HanLP.convertToTraditionalChinese("一个劲"));
+        StringDictionary dictionaryTotal = StringDictionaryMaker.combine(dictionaryJpinyin, dictionaryAnsj, dictionaryChinese, dictionaryChineseTraditional);
+        dictionaryTotal.save("data/dictionary/TraditionalChinese.txt");
+
+        System.out.println(dictionaryTotal.entrySet());
     }
 }

@@ -13,7 +13,6 @@ package com.hankcs.hanlp.seg.common.wrapper;
 
 import com.hankcs.hanlp.seg.Segment;
 import com.hankcs.hanlp.seg.common.Term;
-import com.hankcs.hanlp.utility.TextUtility;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -59,12 +58,7 @@ public class SegmentWrapper
     {
         if (termArray != null && index < termArray.length) return termArray[index++];
         String line = br.readLine();
-        while (TextUtility.isBlank(line))
-        {
-            if (line == null) return null;
-            line = br.readLine();
-        }
-
+        if (line == null) return null;
         List<Term> termList = segment.seg(line);
         if (termList.size() == 0) return null;
         termArray = termList.toArray(new Term[0]);

@@ -55,7 +55,7 @@ public class DoubleArrayTrie<V> implements Serializable, ITrie<V>
     protected int check[];
     protected int base[];
 
-    private BitSet used;
+    private boolean used[];
     /**
      * base 和 check 的大小
      */
@@ -85,14 +85,17 @@ public class DoubleArrayTrie<V> implements Serializable, ITrie<V>
     {
         int[] base2 = new int[newSize];
         int[] check2 = new int[newSize];
+        boolean used2[] = new boolean[newSize];
         if (allocSize > 0)
         {
             System.arraycopy(base, 0, base2, 0, allocSize);
             System.arraycopy(check, 0, check2, 0, allocSize);
+            System.arraycopy(used, 0, used2, 0, allocSize);
         }
 
         base = base2;
         check = check2;
+        used = used2;
 
         return allocSize = newSize;
     }
@@ -191,14 +194,14 @@ public class DoubleArrayTrie<V> implements Serializable, ITrie<V>
             begin = pos - siblings.get(0).code; // 当前位置离第一个兄弟节点的距离
             if (allocSize <= (begin + siblings.get(siblings.size() - 1).code))
             {
-                resize(begin + siblings.get(siblings.size() - 1).code + Character.MAX_VALUE);
+                // progress can be zero // 防止progress产生除零错误
+                double l = (1.05 > 1.0 * keySize / (progress + 1)) ? 1.05 : 1.0
+                        * keySize / (progress + 1);
+                resize((int) (allocSize * l));
             }
 
-            //if (used[begin])
-             //   continue;
-            if(used.get(begin)){
-            	continue;
-            }
+            if (used[begin])
+                continue;
 
             for (int i = 1; i < siblings.size(); i++)
                 if (check[begin + siblings.get(i).code] != 0)
@@ -216,9 +219,7 @@ public class DoubleArrayTrie<V> implements Serializable, ITrie<V>
         if (1.0 * nonzero_num / (pos - nextCheckPos + 1) >= 0.95)
             nextCheckPos = pos; // 从位置 next_check_pos 开始到 pos 间，如果已占用的空间在95%以上，下次插入节点时，直接从 pos 位置处开始查找
 
-        //used[begin] = true;
-        used.set(begin);
-        
+        used[begin] = true;
         size = (size > begin + siblings.get(siblings.size() - 1).code + 1) ? size
                 : begin + siblings.get(siblings.size() - 1).code + 1;
 
@@ -262,7 +263,7 @@ public class DoubleArrayTrie<V> implements Serializable, ITrie<V>
     {
         check = null;
         base = null;
-        used = new BitSet();
+        used = null;
         size = 0;
         allocSize = 0;
         // no_delete_ = false;
@@ -525,7 +526,6 @@ public class DoubleArrayTrie<V> implements Serializable, ITrie<V>
             check[i] = byteArray.nextInt();
         }
         v = value;
-        used = null;    // 无用的对象,释放掉
         return true;
     }
 
@@ -1043,26 +1043,6 @@ public class DoubleArrayTrie<V> implements Serializable, ITrie<V>
     }
 
     /**
-     * 转移状态
-     * @param c
-     * @param from
-     * @return
-     */
-    public int transition(char c, int from)
-    {
-        int b = from;
-        int p;
-
-        p = b + (int) (c) + 1;
-        if (b == check[p])
-            b = base[p];
-        else
-            return -1;
-
-        return b;
-    }
-
-    /**
      * 检查状态是否对应输出
      *
      * @param state 双数组下标
@@ -1119,8 +1099,7 @@ public class DoubleArrayTrie<V> implements Serializable, ITrie<V>
 
         /**
          * 构造一个双数组搜索工具
-         *
-         * @param offset    搜索的起始位置
+         * @param offset 搜索的起始位置
          * @param charArray 搜索的目标字符数组
          */
         public Searcher(int offset, char[] charArray)
@@ -1138,7 +1117,6 @@ public class DoubleArrayTrie<V> implements Serializable, ITrie<V>
 
         /**
          * 取出下一个命中输出
-         *
          * @return 是否命中，当返回false表示搜索结束，否则使用公开的成员读取命中的详细信息
          */
         public boolean next()

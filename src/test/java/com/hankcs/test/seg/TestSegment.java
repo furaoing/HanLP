@@ -12,30 +12,28 @@
 package com.hankcs.test.seg;
 
 import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.collection.AhoCorasick.AhoCorasickDoubleArrayTrie;
 import com.hankcs.hanlp.dictionary.CoreBiGramTableDictionary;
 import com.hankcs.hanlp.dictionary.CoreDictionary;
 import com.hankcs.hanlp.dictionary.CustomDictionary;
 import com.hankcs.hanlp.dictionary.other.CharTable;
 import com.hankcs.hanlp.dictionary.other.CharType;
 import com.hankcs.hanlp.seg.CRF.CRFSegment;
-import com.hankcs.hanlp.seg.Other.CommonAhoCorasickSegmentUtil;
 import com.hankcs.hanlp.seg.Other.DoubleArrayTrieSegment;
 import com.hankcs.hanlp.seg.Segment;
 import com.hankcs.hanlp.seg.Dijkstra.DijkstraSegment;
 import com.hankcs.hanlp.seg.Viterbi.ViterbiSegment;
-import com.hankcs.hanlp.seg.common.ResultTerm;
 import com.hankcs.hanlp.seg.common.Term;
 import com.hankcs.hanlp.seg.common.wrapper.SegmentWrapper;
-import com.hankcs.hanlp.tokenizer.*;
+import com.hankcs.hanlp.tokenizer.BasicTokenizer;
+import com.hankcs.hanlp.tokenizer.IndexTokenizer;
+import com.hankcs.hanlp.tokenizer.NotionalTokenizer;
+import com.hankcs.hanlp.tokenizer.StandardTokenizer;
 import junit.framework.TestCase;
 
 import java.io.BufferedReader;
 import java.io.StringReader;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.TreeMap;
 
 /**
  * @author hankcs
@@ -45,19 +43,20 @@ public class TestSegment extends TestCase
     public void testSeg() throws Exception
     {
         HanLP.Config.enableDebug();
-        Segment segment = new DijkstraSegment();
+        Segment segment = new DijkstraSegment().enableCustomDictionary(false).enableOrganizationRecognize(true);
         System.out.println(segment.seg(
-                "我遗忘我的密码了"
+                "”一位不愿透露姓名的业内人士指出。”葵花药业集团董事长关彦斌指出，"
         ));
     }
 
     public void testViterbi() throws Exception
     {
-        HanLP.Config.enableDebug(true);
-        CustomDictionary.add("网剧");
-        Segment seg = new DijkstraSegment();
-        List<Term> termList = seg.seg("优酷总裁魏明介绍了优酷2015年的内容战略，表示要以“大电影、大网剧、大综艺”为关键词");
-        System.out.println(termList);
+//        HanLP.Config.enableDebug(true);
+        HanLP.Config.ShowTermNature = false;
+        Segment segment = new DijkstraSegment();
+        System.out.println(segment.seg(
+                "上外日本文化经济学院的陆晚霞教授正在教授泛读课程"
+        ));
     }
 
     public void testNotional() throws Exception
@@ -110,16 +109,16 @@ public class TestSegment extends TestCase
 
     public void testCustomDictionary() throws Exception
     {
-        CustomDictionary.insert("肯德基", "ns 1000");
-        Segment segment = new ViterbiSegment();
-        System.out.println(segment.seg("肯德基"));
+        DijkstraSegment segment = new DijkstraSegment();
+        System.out.println(segment.seg("你在一汽马自达汽车销售有限公司上班吧"));
     }
 
     public void testNT() throws Exception
     {
         HanLP.Config.enableDebug();
-        Segment segment = new DijkstraSegment().enableOrganizationRecognize(true);
-        System.out.println(segment.seg("张克智与潍坊地铁建设工程公司"));
+        DijkstraSegment segment = new DijkstraSegment();
+        segment.enableOrganizationRecognize(true);
+        System.out.println(segment.seg("我在上海林原科技有限公司兼职工作"));
     }
 
     public void testACSegment() throws Exception
@@ -207,22 +206,6 @@ public class TestSegment extends TestCase
         System.out.println(termList);
     }
 
-    public void testIssue199() throws Exception
-    {
-        Segment segment = new CRFSegment();
-        segment.enableCustomDictionary(false);// 开启自定义词典
-        segment.enablePartOfSpeechTagging(true);
-        List<Term> termList = segment.seg("更多采购");
-        System.out.println(termList);
-        for (Term term : termList)
-        {
-            if (term.nature == null)
-            {
-                System.out.println("识别到新词：" + term.word);
-            }
-        }
-    }
-
     public void testMultiThreading() throws Exception
     {
         Segment segment = BasicTokenizer.SEGMENT;
@@ -269,10 +252,11 @@ public class TestSegment extends TestCase
 
     public void testCRFSegment() throws Exception
     {
-        HanLP.Config.enableDebug();
-//        HanLP.Config.ShowTermNature = false;
+//        HanLP.Config.enableDebug();
+        HanLP.Config.ShowTermNature = false;
         Segment segment = new CRFSegment();
-        System.out.println(segment.seg("有句谚语叫做一个萝卜一个坑儿"));
+        System.out.println(segment.seg("尼玛不是新词，王尼玛是新词"));
+        System.out.println(segment.seg("周杰伦在出品范特西之后，又出品了依然范特西"));
     }
 
     public void testIssue16() throws Exception
@@ -308,63 +292,10 @@ public class TestSegment extends TestCase
         System.out.println(StandardTokenizer.segment("三年"));
     }
 
-    public void testIssue71() throws Exception
-    {
-        Segment segment = HanLP.newSegment();
-        segment = segment.enableAllNamedEntityRecognize(true);
-        segment = segment.enableNumberQuantifierRecognize(true);
-        System.out.println(segment.seg("曾幻想过，若干年后的我就是这个样子的吗"));
-    }
-
-    public void testIssue193() throws Exception
-    {
-        String[] testCase = new String[] {
-                "以每台约200元的价格送到苹果售后维修中心换新机（苹果的保修基本是免费换新机）",
-                "可能以2500~2800元的价格回收",
-                "3700个益农信息社打通服务“最后一公里”",
-                "一位李先生给高政留言说上周五可以帮忙献血",
-                "一位浩宁达高层透露",
-                "五和万科长阳天地5个普宅项目",
-                "以1974点低点和5178点高点作江恩角度线",
-                "纳入统计的18家京系基金公司",
-                "华夏基金与嘉实基金两家京系基金公司",
-                "则应从排名第八的投标人开始依次递补三名投标人"
-        };
-        Segment segment = HanLP.newSegment().enableOrganizationRecognize(true).enableNumberQuantifierRecognize(true);
-        for (String sentence : testCase) {
-            List<Term> termList = segment.seg(sentence);
-            System.out.println(termList);
-        }
-    }
-
     public void testTime() throws Exception
     {
-        TraditionalChineseTokenizer.segment("认可程度");
-    }
-
-    public void testBuildASimpleSegment() throws Exception
-    {
-        TreeMap<String, String> dictionary = new TreeMap<String, String>();
-        dictionary.put("HanLP", "名词");
-        dictionary.put("特别", "副词");
-        dictionary.put("方便", "形容词");
-        AhoCorasickDoubleArrayTrie<String> acdat = new AhoCorasickDoubleArrayTrie<String>();
-        acdat.build(dictionary);
-        LinkedList<ResultTerm<String>> termList =
-                CommonAhoCorasickSegmentUtil.segment("HanLP是不是特别方便？", acdat);
-        System.out.println(termList);
-    }
-
-    public void testNLPSegment() throws Exception
-    {
-        String text = "2013年4月27日11时54分";
-        NLPTokenizer.SEGMENT.enableNumberQuantifierRecognize(true);
-        System.out.println(NLPTokenizer.segment(text));
-    }
-
-    public void testTraditionalSegment() throws Exception
-    {
-        String text = "吵架吵到快取消結婚了";
-        System.out.println(TraditionalChineseTokenizer.segment(text));
+        String text = "下午3时由北京出发";
+        StandardTokenizer.SEGMENT.enableNumberQuantifierRecognize(true);
+        System.out.println(StandardTokenizer.segment(text));
     }
 }

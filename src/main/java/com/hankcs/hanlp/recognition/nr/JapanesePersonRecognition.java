@@ -57,7 +57,7 @@ public class JapanesePersonRecognition
             {
                 if (appendTimes > 1 && sbName.length() > 2) // 日本人名最短为3字
                 {
-                    insertName(sbName.toString(), activeLine, wordNetOptimum, wordNetAll);
+                    wordNetOptimum.insert(activeLine, new Vertex(Predefine.TAG_PEOPLE, sbName.toString(), new CoreDictionary.Attribute(Nature.nrj), WORD_ID), wordNetAll);
                 }
                 sbName.setLength(0);
                 appendTimes = 0;
@@ -82,7 +82,7 @@ public class JapanesePersonRecognition
                 {
                     if (appendTimes > 1 && sbName.length() > 2)
                     {
-                        insertName(sbName.toString(), activeLine, wordNetOptimum, wordNetAll);
+                        wordNetOptimum.insert(activeLine, new Vertex(Predefine.TAG_PEOPLE, sbName.toString(), new CoreDictionary.Attribute(Nature.nrj), WORD_ID), wordNetAll);
                     }
                     sbName.setLength(0);
                     appendTimes = 0;
@@ -94,33 +94,8 @@ public class JapanesePersonRecognition
         {
             if (appendTimes > 1)
             {
-                insertName(sbName.toString(), activeLine, wordNetOptimum, wordNetAll);
+                wordNetOptimum.insert(activeLine, new Vertex(Predefine.TAG_PEOPLE, sbName.toString(), new CoreDictionary.Attribute(Nature.nrj), WORD_ID), wordNetAll);
             }
         }
-    }
-
-    /**
-     * 是否是bad case
-     * @param name
-     * @return
-     */
-    public static boolean isBadCase(String name)
-    {
-        Character label = JapanesePersonDictionary.get(name);
-        if (label == null) return false;
-        return label.equals(JapanesePersonDictionary.A);
-    }
-
-    /**
-     * 插入日本人名
-     * @param name
-     * @param activeLine
-     * @param wordNetOptimum
-     * @param wordNetAll
-     */
-    private static void insertName(String name, int activeLine, WordNet wordNetOptimum, WordNet wordNetAll)
-    {
-        if (isBadCase(name)) return;
-        wordNetOptimum.insert(activeLine, new Vertex(Predefine.TAG_PEOPLE, name, new CoreDictionary.Attribute(Nature.nrj), WORD_ID), wordNetAll);
     }
 }

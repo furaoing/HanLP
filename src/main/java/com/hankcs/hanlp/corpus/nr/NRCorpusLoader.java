@@ -11,7 +11,6 @@
  */
 package com.hankcs.hanlp.corpus.nr;
 
-import com.hankcs.hanlp.HanLP;
 import com.hankcs.hanlp.corpus.dictionary.DictionaryMaker;
 import com.hankcs.hanlp.corpus.dictionary.item.Item;
 import com.hankcs.hanlp.corpus.document.sentence.word.Word;
@@ -92,7 +91,12 @@ public class NRCorpusLoader
 
     public static void combine()
     {
-        DictionaryMaker dictionaryMaker = DictionaryMaker.combine(HanLP.Config.CoreDictionaryPath, "XXXDictionary.txt");
-        dictionaryMaker.saveTxtTo(HanLP.Config.CoreDictionaryPath);
+        DictionaryMaker dictionaryMaker = DictionaryMaker.combine(new String[]{
+                "data/dictionary/person/nr.txt",
+//                "data/dictionary/person/name.txt",
+                "data/dictionary/person/authornames.txt",
+//                "data/dictionary/person/ansj_person_out.txt",
+        });
+        dictionaryMaker.saveTxtTo("data/dictionary/person/nr.txt");
     }
 }

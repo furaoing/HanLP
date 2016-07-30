@@ -6,7 +6,7 @@ import junit.framework.TestCase;
 
 import java.util.Map;
 
-public class TestCustomDictionary extends TestCase
+public class testCustomDictionary extends TestCase
 {
     public static void main(String[] args)
     {

@@ -12,9 +12,7 @@
 package com.hankcs.hanlp.summary;
 
 import com.hankcs.hanlp.dictionary.stopword.CoreStopWordDictionary;
-import com.hankcs.hanlp.seg.Segment;
 import com.hankcs.hanlp.seg.common.Term;
-import com.hankcs.hanlp.tokenizer.StandardTokenizer;
 
 /**
  * 提取关键词的基类
@@ -22,11 +20,6 @@ import com.hankcs.hanlp.tokenizer.StandardTokenizer;
  */
 public class KeywordExtractor
 {
-    /**
-     * 默认分词器
-     */
-    Segment defaultSegment = StandardTokenizer.SEGMENT;
-
     /**
      * 是否应当将这个term纳入计算，词性属于名词、动词、副词、形容词
      *
@@ -67,16 +60,5 @@ public class KeywordExtractor
         }
 
         return false;
-    }
-
-    /**
-     * 设置关键词提取器使用的分词器
-     * @param segment 任何开启了词性标注的分词器
-     * @return 自己
-     */
-    public KeywordExtractor setSegment(Segment segment)
-    {
-        defaultSegment = segment;
-        return this;
     }
 }

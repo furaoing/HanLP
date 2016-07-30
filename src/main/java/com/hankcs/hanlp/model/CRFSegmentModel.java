@@ -28,7 +28,7 @@ import static com.hankcs.hanlp.utility.Predefine.logger;
  *
  * @author hankcs
  */
-public final class CRFSegmentModel extends CRFModel
+public class CRFSegmentModel extends CRFModel
 {
     public static CRFModel crfModel;
 
@@ -39,9 +39,8 @@ public final class CRFSegmentModel extends CRFModel
         crfModel = CRFModel.loadTxt(HanLP.Config.CRFSegmentModelPath, new CRFSegmentModel(new BinTrie<FeatureFunction>()));
         if (crfModel == null)
         {
-            String error = "CRF分词模型加载 " + HanLP.Config.CRFSegmentModelPath + " 失败，耗时 " + (System.currentTimeMillis() - start) + " ms";
-            logger.severe(error);
-            throw new IllegalArgumentException(error);
+            logger.severe("CRF分词模型加载 " + HanLP.Config.CRFSegmentModelPath + " 失败，耗时 " + (System.currentTimeMillis() - start) + " ms");
+            System.exit(-1);
         }
         else
             logger.info("CRF分词模型加载 " + HanLP.Config.CRFSegmentModelPath + " 成功，耗时 " + (System.currentTimeMillis() - start) + " ms");
@@ -52,17 +51,10 @@ public final class CRFSegmentModel extends CRFModel
     private final static int idS = crfModel.getTagId("S");
 
     /**
-     * 单例包装静态模型，不允许构造实例
-     */
-    private CRFSegmentModel()
-    {
-    }
-
-    /**
      * 以指定的trie树结构储存内部特征函数
      * @param featureFunctionTrie
      */
-    private CRFSegmentModel(ITrie<FeatureFunction> featureFunctionTrie)
+    public CRFSegmentModel(ITrie<FeatureFunction> featureFunctionTrie)
     {
         super(featureFunctionTrie);
     }
@@ -95,6 +87,7 @@ public final class CRFSegmentModel extends CRFModel
                 double maxScore = -1e10;
                 for (int pre = 0; pre < 4; ++pre)
                 {
+                    if (matrix[pre][now] <= 0) continue;
                     double score = net[i - 1][pre] + matrix[pre][now] + net[i][now];
                     if (score > maxScore)
                     {

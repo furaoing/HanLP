@@ -26,7 +26,7 @@ public class TraditionalChineseDictionary extends BaseChineseDictionary
     /**
      * 繁体=简体
      */
-    public static AhoCorasickDoubleArrayTrie<String> trie = new AhoCorasickDoubleArrayTrie<String>();
+    static AhoCorasickDoubleArrayTrie<String> trie = new AhoCorasickDoubleArrayTrie<String>();
 
     static
     {

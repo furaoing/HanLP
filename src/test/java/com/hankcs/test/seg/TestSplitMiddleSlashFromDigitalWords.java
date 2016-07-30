@@ -16,7 +16,7 @@ import com.hankcs.hanlp.seg.NShort.NShortSegment;
 /**
  * @author hankcs
  */
-public class TestSplitMiddleSlashFromDigitalWords
+public class testSplitMiddleSlashFromDigitalWords
 {
     public static void main(String[] args)
     {

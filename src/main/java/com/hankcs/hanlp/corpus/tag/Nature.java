@@ -11,8 +11,6 @@
  */
 package com.hankcs.hanlp.corpus.tag;
 
-import com.hankcs.hanlp.corpus.util.CustomNatureUtility;
-
 /**
  * 词性
  *
@@ -753,80 +751,44 @@ public enum Nature
     wh,
 
     /**
-     * 仅用于终##终，不会出现在分词结果中
+     * 仅用于始##始
      */
     end,
 
     /**
-     * 仅用于始##始，不会出现在分词结果中
+     * 仅用于终##终
      */
     begin,
 
-    ;
+
+
+
+
+
+
 
     /**
-     * 词性是否以该前缀开头<br>
-     *     词性根据开头的几个字母可以判断大的类别
-     * @param prefix 前缀
-     * @return 是否以该前缀开头
+     * HanLp-1.2.4-Taikor 新添加词性
      */
-    public boolean startsWith(String prefix)
-    {
-        return toString().startsWith(prefix);
-    }
 
-    /**
-     * 词性是否以该前缀开头<br>
-     *     词性根据开头的几个字母可以判断大的类别
-     * @param prefix 前缀
-     * @return 是否以该前缀开头
-     */
-    public boolean startsWith(char prefix)
-    {
-        return toString().charAt(0) == prefix;
-    }
-
-    /**
-     * 词性的首字母<br>
-     *     词性根据开头的几个字母可以判断大的类别
-     * @return
-     */
-    public char firstChar()
-    {
-        return toString().charAt(0);
-    }
-
-    /**
-     * 安全地将字符串类型的词性转为Enum类型，如果未定义该词性，则返回null
-     * @param name 字符串词性
-     * @return Enum词性
-     */
-    public static Nature fromString(String name)
-    {
-        try
-        {
-            return Nature.valueOf(name);
-        }
-        catch (Exception e)
-        {
-            return null;
-        }
-    }
-
-    /**
-     * 创建自定义词性,如果已有该对应词性,则直接返回已有的词性
-     * @param name 字符串词性
-     * @return Enum词性
-     */
-    public static Nature create(String name)
-    {
-        try
-        {
-            return Nature.valueOf(name);
-        }
-        catch (Exception e)
-        {
-            return CustomNatureUtility.addNature(name);
-        }
-    }
+    /**电商词汇**/
+    nec_tk,
+        /**房产词汇**/
+    nrs_tk,
+    /**股票代码/名称词汇**/
+    nst_tk,
+    /**金融基础词汇**/
+    njr1_tk,
+    /**（金融）事件驱动词汇**/
+    nfe_tk,
+    /**金融词汇更新**/
+    njr2_tk,
+    /**酒店词汇**/
+    ntch_tk,
+    /**汽车词汇**/
+    nv_tk,
+    /**时尚词汇**/
+    nfs_tk,
+    /**食品词汇**/
+    nf_tk
 }
